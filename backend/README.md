@@ -8,6 +8,10 @@ Because shopify didn't allow us to apply a automatic discount on a customer grou
 we ended up using the 'Automatic Discount & Gift' shopify app.
 ![automatic discount & gift setup](discount_setup.png)
 
+### Caveats:
+
+-   I ended up committing the shopify credentials accidentally, so they're still in the git history(Not best practice!)
+
 For this exercise you will be integrating the shopify api into one of our api endpoints.
 
 ## Use Case:
