@@ -1,8 +1,10 @@
 import { gql } from '@apollo/client/core';
-import { StripeCustomer, UserRole } from '../../common/apollo/types';
+import { StripeCustomer, SubscriptionStatus, User, UserRole } from '../../common/apollo/types';
 import { withJwt } from '../../common/enhancers';
 import error from '../../common/error';
 import stripe from '../../common/stripe';
+import apollo from '../../common/apollo';
+import shopify from '../../common/shopify';
 
 export interface Args {
     studentId: string;
@@ -23,23 +25,33 @@ export interface GetPlanAndStudentResults {
     };
     student: {
         id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
         parentId: string;
         shopifyCustomerId?: string;
         subscription: {
+            status: string;
             stripeSubscriptionId: string;
             cancelAt?: string;
         };
         stripe?: Pick<StripeCustomer, 'customerId'>;
         parent?: {
             id: string;
+            firstName: string;
+            lastName: string;
+            email: string;
             shopifyCustomerId?: string;
             stripe?: Pick<StripeCustomer, 'customerId'>;
             subscriptions: {
+                studentId: string;
+                status: string;
                 stripeSubscriptionId: string;
             }[];
         };
     };
 }
+
 export const GET_PLAN_AND_STUDENT = gql`
     query GetPlanAndStudent($studentId: uuid!, $planId: String!, $promoCode: String) {
         promoCodes: promo_codes(where: { code: { _eq: $promoCode } }) {
@@ -53,10 +65,14 @@ export const GET_PLAN_AND_STUDENT = gql`
         }
         student(id: $studentId) {
             id
+            firstName
+            lastName
+            email
             stripe {
                 customerId
             }
             subscription {
+                status
                 stripeSubscriptionId
                 cancelAt
             }
@@ -64,12 +80,16 @@ export const GET_PLAN_AND_STUDENT = gql`
             parentId: parent_id
             parent {
                 id
+                firstName
+                lastName
+                email
                 shopifyCustomerId
                 stripe {
                     customerId
                 }
                 subscriptions(order_by: [{ createdAt: asc }]) {
                     stripeSubscriptionId
+                    status
                 }
             }
         }
@@ -107,9 +127,11 @@ const purchasePlan = withJwt<Args>(
             throw error.apolloError(error.ERRORS.rs_no_stripe_account);
         }
 
-        if (student.subscription) {
-            throw error.apolloError(error.ERRORS.rs_already_subscribed);
-        }
+        // if (student.subscription) {
+        //     throw error.apolloError(error.ERRORS.rs_already_subscribed);
+        // }
+
+        const user = (student.parent || student) as User;
 
         // returns subscription id
         const subscriptionId = stripe.createOrAddSubscription({
@@ -120,7 +142,39 @@ const purchasePlan = withJwt<Args>(
             promoCodeId: promoCodes[0]?.id,
         });
 
-        //TODO : implement integration with shopify
+        if (user.shopifyCustomerId) {
+            return subscriptionId;
+        }
+
+        if (student.parent) {
+            const studentSubscription = student.parent.subscriptions.find((subs) => subs.studentId === studentId);
+            const isActive = studentSubscription ? studentSubscription.status === SubscriptionStatus.ACTIVE : false;
+            const shopifyCustomerId = await shopify.createOrAddCustomer({
+                userInfo: {
+                    email: student.parent.email,
+                    firstName: student.parent.firstName,
+                    lastName: student.parent.lastName,
+                    isActive,
+                },
+            });
+
+            const studentWithShopifyCustomerId = { ...student, shopifyCustomerId };
+            await apollo.users.update(ctx.apollo, studentId, studentWithShopifyCustomerId);
+        } else {
+            const isActive = student.subscription.status === SubscriptionStatus.ACTIVE;
+            const shopifyCustomerId = await shopify.createOrAddCustomer({
+                userInfo: {
+                    email: student.email,
+                    firstName: student.firstName,
+                    lastName: student.lastName,
+                    isActive,
+                },
+            });
+            const studentWithShopifyCustomerId = { ...student, shopifyCustomerId };
+            await apollo.students.update(ctx.apollo, studentId, studentWithShopifyCustomerId);
+        }
+
+        // TODO : implement integration with shopify
         // it should include the following
         // 1. Creating a customer with shopify( a new `common` lib) if not already created reference
         // Profile.shopifyCustomerId

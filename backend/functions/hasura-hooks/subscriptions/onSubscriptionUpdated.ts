@@ -1,6 +1,7 @@
 import apollo from '../../common/apollo';
+import shopify from '../../common/shopify';
 
-import { User } from '../../common/apollo/types';
+import { SubscriptionStatus, User } from '../../common/apollo/types';
 import { withApolloClient } from '../../common/enhancers';
 import newLogger from '../../common/newLogger';
 
@@ -19,7 +20,17 @@ export const onSubscriptionUpdated = async (updated: SubscriptionRow, old: Subsc
         return false;
     }
 
+    if (updated.status === old.status) {
+        logger.error("Subscription's were not changed");
+        return false;
+    }
+
     const user = (subscriptions.student.parent || subscriptions.student) as User;
 
-    return true;
+    if (user.shopifyCustomerId && old.status !== SubscriptionStatus.ACTIVE) {
+        const shopifyCustomerId = await shopify.removeSubscribedTag(user.shopifyCustomerId);
+        return !!shopifyCustomerId;
+    }
+
+    return false;
 };
