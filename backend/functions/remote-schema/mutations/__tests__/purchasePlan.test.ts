@@ -1,12 +1,14 @@
-import { UserRole } from '../../../common/apollo/types';
+import { SubscriptionStatus, UserRole } from '../../../common/apollo/types';
 import stripe from '../../../common/stripe';
 import { callGraphHandler, verifyExtractedTokenMock, makeMock as mm, randomString } from '../../../common/test-helpers';
 import purchasePlan, { Args } from '../purchasePlan';
 import apollo from '../../../common/apollo';
+import shopify from '../../../common/shopify';
 
 // NOTE: This is how you tell jest to mock a js file, do the same for your shopify common lib
 jest.mock('../../../common/stripe');
 jest.mock('../../../common/apollo');
+jest.mock('../../../common/shopify');
 
 describe('remote-schema/mutations/purchasePlan', () => {
     const userId = 'some-id';
@@ -17,6 +19,7 @@ describe('remote-schema/mutations/purchasePlan', () => {
         studentId: userId,
     };
     const shopifyCustomerId = randomString(10);
+    // const shopifyCustomerId = 'shopifyCustomerId';
     beforeEach(() => {
         verifyExtractedTokenMock.mockResolvedValue({
             role: UserRole.STUDENT,
@@ -26,6 +29,7 @@ describe('remote-schema/mutations/purchasePlan', () => {
         // `mm(...)` mock out your functions with the expected response. This can be done beforeEach function or
         // you can mock out the response in the individual test it self
         mm(stripe).createOrAddSubscription.mockResolvedValueOnce(subscriptionId);
+        mm(shopify).createOrAddCustomer.mockResolvedValueOnce(shopifyCustomerId);
     });
 
     // NOTE: you can use this test case to setup you other 2 test cases
@@ -41,9 +45,18 @@ describe('remote-schema/mutations/purchasePlan', () => {
                 id: 'studentId',
                 parentId: userId,
                 parent: {
+                    email: 'parent@mail.com',
+                    firstName: 'parent',
+                    lastName: 'parent',
                     stripe: {
                         customerId: 'customerId',
                     },
+                    subscriptions: [
+                        {
+                            studentId: 'studentId',
+                            status: SubscriptionStatus.ACTIVE,
+                        },
+                    ],
                 },
             },
             product: {
@@ -83,9 +96,15 @@ describe('remote-schema/mutations/purchasePlan', () => {
             promoCodes: [],
             student: {
                 id: 'studentId',
+                email: 'student@mail.com',
+                firstName: 'student',
+                lastName: 'student',
                 parentId: userId,
                 stripe: {
                     customerId: 'customerId',
+                },
+                subscription: {
+                    status: SubscriptionStatus.ACTIVE,
                 },
             },
             product: {

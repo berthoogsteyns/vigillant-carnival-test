@@ -1,8 +1,11 @@
 import { SubscriptionsByStudentId } from '../../../common/apollo/subscriptions';
 import { SubscriptionStatus } from '../../../common/apollo/types';
-import { callHook, DeepPartial, randomString } from '../../../common/test-helpers';
+import shopify from '../../../common/shopify';
+import { callHook, DeepPartial, randomString, makeMock as mm } from '../../../common/test-helpers';
 
 import { onSubscriptionUpdated } from '../onSubscriptionUpdated';
+
+jest.mock('../../../common/shopify');
 
 const rs = () => randomString(10);
 type SubscriptionStudent = DeepPartial<NonNullable<SubscriptionsByStudentId['student']>>;
@@ -28,6 +31,12 @@ describe('hooks/subscriptions/onSubscriptionUpdated', () => {
     const DATA = {
         student,
     };
+
+    const shopifyCustomerId = randomString(10);
+
+    beforeEach(() => {
+        mm(shopify).removeSubscribedTag.mockResolvedValueOnce(shopifyCustomerId);
+    });
 
     it('should return false if no subscription or student found', async () => {
         const { response } = await callHook(onSubscriptionUpdated, [current, old]);
