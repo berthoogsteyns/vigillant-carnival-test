@@ -11,9 +11,9 @@ const rs = () => randomString(10);
 type SubscriptionStudent = DeepPartial<NonNullable<SubscriptionsByStudentId['student']>>;
 describe('hooks/subscriptions/onSubscriptionUpdated', () => {
     const current = {
-        id: randomString(10),
-        student_id: randomString(10),
-        parent_id: randomString(10),
+        id: rs(),
+        student_id: rs(),
+        parent_id: rs(),
         status: SubscriptionStatus.ACTIVE,
     };
     const old = {

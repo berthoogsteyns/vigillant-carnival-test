@@ -5,10 +5,10 @@ const SUBSCRIBED = 'subscribed';
 
 const shopifyClient = new ApolloClient({
     link: new HttpLink({
-        uri: 'https://vigilant-carnival-dev.myshopify.com/admin/api/2021-04/graphql.json',
+        uri: process.env.SHOPIFY_API_ENDPOINT, // 'https://vigilant-carnival-dev.myshopify.com/admin/api/2021-04/graphql.json',
         fetch,
         headers: {
-            'X-Shopify-Access-Token': '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',
+            'X-Shopify-Access-Token': process.env.SHOPIFY_API_KEY, // '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',
         },
     }),
     cache: new InMemoryCache(),
