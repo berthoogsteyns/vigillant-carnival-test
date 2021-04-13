@@ -10,7 +10,7 @@ we ended up using the 'Automatic Discount & Gift' shopify app.
 
 ### Caveats:
 
--   I ended up committing the shopify credentials accidentally, so they're still in the git history(Not best practice!)
+-   I accidentally committed the shopify credentials, so they're still in the git history(Not best practice!)
 
 For this exercise you will be integrating the shopify api into one of our api endpoints.
 
