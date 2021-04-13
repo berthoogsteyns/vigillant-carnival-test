@@ -20,6 +20,9 @@ provider:
         SENTRY_DSN: '${env:SENTRY_DSN}'
         STRIPE_SECRET_KEY: '${env:STRIPE_SECRET_KEY}'
         MAILCHIMP_API_KEY: '${env:MAILCHIMP_API_KEY}'
+        SHOPIFY_API_KEY: '${env:SHOPIFY_API_KEY}'
+        SHOPIFY_API_ENDPOINT: '${env:SHOPIFY_API_ENDPOINT}'
+
 
 package:
     individually: true
